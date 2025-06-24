@@ -1,0 +1,13 @@
+[package]
+name = "path-inspect"
+version = "0.1.0"
+edition = "2021"
+description = "A TUI application for browsing PATH directories with search functionality"
+license = "MIT"
+repository = "https://github.com/brandondvs/path-inspect"
+keywords = ["tui", "terminal", "path", "directory", "browser"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+crossterm = "0.29.0"
+ratatui = "0.29.0"
