@@ -11,6 +11,7 @@ use crate::ui;
 pub struct App {
     pub exit: bool,
     selected_index: usize,
+    path_list_selected_index: usize,
     table_state: TableState,
     current_view: View,
     directory_view: Option<DirectoryView>,
@@ -23,6 +24,7 @@ impl Default for App {
         Self {
             exit: false,
             selected_index: 0,
+            path_list_selected_index: 0,
             table_state,
             current_view: View::PathList,
             directory_view: None,
@@ -163,6 +165,9 @@ impl App {
         let paths: Vec<&str> = path_env.split(':').collect();
 
         if let Some(selected_path) = paths.get(self.selected_index) {
+            // Save current PATH selection before switching views
+            self.path_list_selected_index = self.selected_index;
+            
             let mut directory_view = DirectoryView::new(selected_path.to_string());
             self.load_directory_contents(&mut directory_view);
             self.directory_view = Some(directory_view);
@@ -254,8 +259,9 @@ impl App {
 
     fn go_back_to_path_list(&mut self) {
         self.current_view = View::PathList;
-        self.selected_index = 0;
-        self.table_state.select(Some(0));
+        // Restore the previously selected PATH entry
+        self.selected_index = self.path_list_selected_index;
+        self.table_state.select(Some(self.path_list_selected_index));
         self.directory_view = None;
     }
 }
