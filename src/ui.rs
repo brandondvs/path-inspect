@@ -1,17 +1,14 @@
 use ratatui::{
-    Frame,
     layout::Constraint,
     style::{Color, Style, Stylize},
     text::Line,
     widgets::{Block, Cell, Row, Table, TableState},
+    Frame,
 };
 
 use crate::types::{DirectoryView, EntryInfo};
 
-pub fn draw_path_list(
-    frame: &mut Frame,
-    table_state: &mut TableState,
-) {
+pub fn draw_path_list(frame: &mut Frame, table_state: &mut TableState) {
     let path_env = std::env::var("PATH").unwrap_or_else(|_| "PATH not found".to_string());
     let path_entries: Vec<Row> = path_env
         .split(':')
@@ -28,10 +25,12 @@ pub fn draw_path_list(
         "<Q> ".blue().bold(),
     ]);
 
+    let total_directories = path_entries.len();
     let path_table = Table::new(path_entries, [Constraint::Length(4), Constraint::Min(0)])
-        .block(Block::bordered()
-            .title(" PATH Entries ")
-            .title_bottom(instructions.centered())
+        .block(
+            Block::bordered()
+                .title(format!(" PATH Entries ({}) ", total_directories))
+                .title_bottom(instructions.centered()),
         )
         .header(Row::new(vec!["#", "Path"]).bold())
         .row_highlight_style(Style::default().bg(Color::Blue).fg(Color::White));
@@ -55,12 +54,12 @@ pub fn draw_directory_contents(
                 EntryInfo::Error(msg) => msg.clone(),
                 EntryInfo::None => String::new(),
             };
-            
+
             Row::new(vec![
                 Cell::from((i + 1).to_string()),
                 Cell::from(entry.name.clone()),
                 Cell::from(if entry.is_symlink { "symlink" } else { "file" }),
-                Cell::from(info_text)
+                Cell::from(info_text),
             ])
         })
         .collect();
@@ -88,32 +87,50 @@ pub fn draw_directory_contents(
 
     let instructions_line = Line::from(instructions);
 
-    let mut title = format!(" Directory: {} ", directory_view.current_path);
-    if directory_view.search_mode {
-        title = format!(" Search: {} ", directory_view.search_query);
-    } else if !directory_view.search_query.is_empty() {
-        title = format!(" Directory: {} (filtered: {}) ", directory_view.current_path, directory_view.search_query);
+    let mut title = format!(
+        " Directory: {} ({}) ",
+        directory_view.current_path,
+        directory_view.directory_contents.len()
+    );
+    if directory_view.search_mode && !directory_view.search_query.is_empty() {
+        title = format!(
+            " Filtered: {} | Directory: {} ({} / {}) ",
+            directory_view.search_query,
+            directory_view.current_path,
+            directory_view.filtered_contents.len(),
+            directory_view.directory_contents.len(),
+        );
+    } else if directory_view.search_mode {
+        title = format!(
+            " Search: {} ({}) ",
+            directory_view.current_path,
+            directory_view.directory_contents.len()
+        );
     }
 
     // Check if there are any error entries
-    let has_errors = contents_to_display.iter().any(|entry| 
-        matches!(entry.info, EntryInfo::Error(_))
-    );
-    
+    let has_errors = contents_to_display
+        .iter()
+        .any(|entry| matches!(entry.info, EntryInfo::Error(_)));
+
     let last_column_header = if has_errors { "Error" } else { "Link Target" };
 
-    let dir_table = Table::new(entries, [
-        Constraint::Length(4),
-        Constraint::Min(20),
-        Constraint::Length(8),
-        Constraint::Min(0)
-    ])
-        .block(Block::bordered()
+    let dir_table = Table::new(
+        entries,
+        [
+            Constraint::Length(4),
+            Constraint::Min(20),
+            Constraint::Length(8),
+            Constraint::Min(0),
+        ],
+    )
+    .block(
+        Block::bordered()
             .title(title)
-            .title_bottom(instructions_line.centered())
-        )
-        .header(Row::new(vec!["#", "Name", "Type", last_column_header]).bold())
-        .row_highlight_style(Style::default().bg(Color::Blue).fg(Color::White));
+            .title_bottom(instructions_line.centered()),
+    )
+    .header(Row::new(vec!["#", "Name", "Type", last_column_header]).bold())
+    .row_highlight_style(Style::default().bg(Color::Blue).fg(Color::White));
 
     frame.render_stateful_widget(dir_table, frame.area(), table_state);
 }
